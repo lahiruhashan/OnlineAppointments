@@ -39,3 +39,11 @@ build/
 .DS_Store
 /.idea/
 /frontend/node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Frontend environment variables
+frontend/.env
+frontend/.env.local
