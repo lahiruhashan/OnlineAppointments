@@ -1,0 +1,16 @@
+.my-appointments {
+    padding: 20px 0;
+}
+
+.my-appointments h1 {
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.no-appointments {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 8px;
+    color: #666;
+}

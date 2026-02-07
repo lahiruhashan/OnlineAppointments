@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/appointment_db
+    username: postgres
+    password: admin123
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# JWT Configuration
+jwt:
+  expiration: 86400000  # 24 hours in milliseconds
+  secret: YourSuperSecretKeyForJWTTokenGenerationMustBeAtLeast256BitsLong!
+
+# Application configuration
+app:
+  name: Online Appointment System

@@ -1,0 +1,14 @@
+.admin-users {
+    padding: 20px 0;
+}
+
+.admin-users h1 {
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.users-table {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}

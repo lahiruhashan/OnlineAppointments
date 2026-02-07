@@ -1,0 +1,32 @@
+.admin-dashboard {
+    padding: 20px 0;
+}
+
+.admin-dashboard h1 {
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.admin-card {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #f57c00;
+}
+
+.admin-card h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.admin-card p {
+    margin-bottom: 15px;
+    color: #666;
+}

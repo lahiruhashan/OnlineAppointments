@@ -1,0 +1,18 @@
+.book-appointment {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.book-appointment h1 {
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.book-appointment button[type="submit"] {
+    width: 100%;
+    margin-top: 20px;
+}
