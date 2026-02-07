@@ -1,9 +1,7 @@
 package com.appointment.controller;
 
 import com.appointment.dto.*;
-import com.appointment.entity.User;
 import com.appointment.repository.UserRepository;
-import com.appointment.security.JwtService;
 import com.appointment.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,21 +20,26 @@ public class AppointmentController {
     
     private final AppointmentService appointmentService;
     private final UserRepository userRepository;
-    private final JwtService jwtService;
     
     @PostMapping
     public ResponseEntity<ApiResponse<AppointmentResponse>> createAppointment(
             @Valid @RequestBody AppointmentRequest request,
             Authentication authentication
     ) {
-        Long userId = jwtService.extractUserId(authentication.getName());
+        String email = authentication.getName();
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getId();
         AppointmentResponse response = appointmentService.createAppointment(userId, request);
         return ResponseEntity.ok(ApiResponse.success("Appointment created successfully", response));
     }
     
     @GetMapping
     public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getMyAppointments(Authentication authentication) {
-        Long userId = jwtService.extractUserId(authentication.getName());
+        String email = authentication.getName();
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getId();
         List<AppointmentResponse> appointments = appointmentService.getUserAppointments(userId);
         return ResponseEntity.ok(ApiResponse.success(appointments));
     }
