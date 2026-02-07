@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -66,10 +67,11 @@ public class AppointmentController {
     }
     
     @GetMapping("/slots/{date}")
-    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getAvailableSlots(
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime date
+    public ResponseEntity<ApiResponse<List<TimeSlotDto>>> getTimeSlots(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        List<AppointmentResponse> slots = appointmentService.getAvailableSlots(date);
+        LocalDateTime dateTime = date.atStartOfDay();
+        List<TimeSlotDto> slots = appointmentService.getTimeSlotsForDate(dateTime);
         return ResponseEntity.ok(ApiResponse.success(slots));
     }
 }

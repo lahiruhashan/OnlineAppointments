@@ -2,6 +2,7 @@ package com.appointment.service;
 
 import com.appointment.dto.AppointmentRequest;
 import com.appointment.dto.AppointmentResponse;
+import com.appointment.dto.TimeSlotDto;
 import com.appointment.entity.Appointment;
 import com.appointment.entity.User;
 import com.appointment.repository.AppointmentRepository;
@@ -96,31 +97,45 @@ public class AppointmentService {
     }
     
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAvailableSlots(LocalDateTime date) {
+    public List<TimeSlotDto> getTimeSlotsForDate(LocalDateTime date) {
         LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
         
+        // Get all appointments for the date
         List<Appointment> bookedAppointments = appointmentRepository.findByDate(startOfDay, endOfDay);
         
-        // Generate all possible 1-hour slots for the day (24/7)
-        return generateAllDaySlots(startOfDay);
-    }
-    
-    private List<AppointmentResponse> generateAllDaySlots(LocalDateTime startOfDay) {
-        List<AppointmentResponse> slots = new java.util.ArrayList<>();
-        LocalDateTime endOfDay = startOfDay.plusDays(1);
-        LocalDateTime currentSlot = startOfDay;
+        // Generate all possible 1-hour slots from 8 AM to 6 PM
+        List<TimeSlotDto> slots = new ArrayList<>();
+        LocalDateTime currentSlot = startOfDay.withHour(8).withMinute(0).withSecond(0).withNano(0);
         
-        // Generate 1-hour slots from 8 AM to 6 PM
-        while (currentSlot.plusHours(1).isBefore(endOfDay) || currentSlot.plusHours(1).equals(endOfDay)) {
-            if (currentSlot.getHour() >= 8 && currentSlot.getHour() < 18) {
-                slots.add(AppointmentResponse.builder()
-                        .title("Available Slot")
-                        .startTime(currentSlot)
-                        .endTime(currentSlot.plusHours(1))
-                        .status("AVAILABLE")
-                        .build());
+        while (currentSlot.getHour() < 18) {
+            LocalDateTime slotEnd = currentSlot.plusHours(1);
+            
+            // Check if this slot overlaps with any booked appointment
+            boolean isBooked = false;
+            String bookedTitle = null;
+            String bookedStatus = null;
+            
+            for (Appointment appt : bookedAppointments) {
+                if (appt.getStatus() != Appointment.AppointmentStatus.CANCELLED) {
+                    // Check for overlap
+                    if (appt.getStartTime().isBefore(slotEnd) && appt.getEndTime().isAfter(currentSlot)) {
+                        isBooked = true;
+                        bookedTitle = appt.getTitle();
+                        bookedStatus = appt.getStatus().name();
+                        break;
+                    }
+                }
             }
+            
+            slots.add(TimeSlotDto.builder()
+                    .startTime(currentSlot)
+                    .endTime(slotEnd)
+                    .available(!isBooked)
+                    .title(isBooked ? bookedTitle : "Available")
+                    .status(isBooked ? bookedStatus : "AVAILABLE")
+                    .build());
+            
             currentSlot = currentSlot.plusHours(1);
         }
         

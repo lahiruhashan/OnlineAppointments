@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import '../styles/BookAppointment.css';
@@ -8,18 +8,66 @@ function BookAppointment() {
         title: '',
         description: '',
         date: '',
-        time: '',
+        selectedSlot: null,
     });
-    const [error, setError] = useState('');
+    const [timeSlots, setTimeSlots] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [slotsLoading, setSlotsLoading] = useState(false);
+    const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     
     const navigate = useNavigate();
     
-    const handleChange = (e) => {
+    // Fetch time slots when date changes
+    useEffect(() => {
+        if (formData.date) {
+            fetchTimeSlots(formData.date);
+        }
+    }, [formData.date]);
+    
+    const fetchTimeSlots = async (date) => {
+        setSlotsLoading(true);
+        setError('');
+        try {
+            const response = await api.get(`/appointments/slots/${date}`);
+            setTimeSlots(response.data.data || []);
+        } catch (err) {
+            console.error('Error fetching time slots:', err);
+            setError('Failed to load time slots');
+        } finally {
+            setSlotsLoading(false);
+        }
+    };
+    
+    const handleDateChange = (e) => {
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            date: e.target.value,
+            selectedSlot: null,
+        });
+        setTimeSlots([]);
+    };
+    
+    const handleSlotClick = (slot) => {
+        if (slot.available) {
+            setFormData({
+                ...formData,
+                selectedSlot: slot,
+            });
+        }
+    };
+    
+    const handleTitleChange = (e) => {
+        setFormData({
+            ...formData,
+            title: e.target.value,
+        });
+    };
+    
+    const handleDescriptionChange = (e) => {
+        setFormData({
+            ...formData,
+            description: e.target.value,
         });
     };
     
@@ -29,15 +77,21 @@ function BookAppointment() {
         setSuccess(false);
         setLoading(true);
         
+        if (!formData.selectedSlot) {
+            setError('Please select a time slot');
+            setLoading(false);
+            return;
+        }
+        
         try {
-            const startTime = new Date(`${formData.date}T${formData.time}`);
-            const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+            const startTime = formData.selectedSlot.startTime;
+            const endTime = formData.selectedSlot.endTime;
             
             await api.post('/appointments', {
                 title: formData.title,
                 description: formData.description,
-                startTime: startTime.toISOString(),
-                endTime: endTime.toISOString(),
+                startTime: startTime,
+                endTime: endTime,
             });
             
             setSuccess(true);
@@ -51,12 +105,13 @@ function BookAppointment() {
         }
     };
     
-    // Generate time slots for 24/7 availability
-    const timeSlots = [];
-    for (let hour = 0; hour < 24; hour++) {
-        const time = `${hour.toString().padStart(2, '0')}:00`;
-        timeSlots.push(time);
-    }
+    const formatTime = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    };
+    
+    // Get minimum date (today)
+    const today = new Date().toISOString().split('T')[0];
     
     return (
         <div className="book-appointment">
@@ -73,7 +128,7 @@ function BookAppointment() {
                         id="title"
                         name="title"
                         value={formData.title}
-                        onChange={handleChange}
+                        onChange={handleTitleChange}
                         required
                         placeholder="e.g., Consultation, Meeting, etc."
                     />
@@ -85,46 +140,72 @@ function BookAppointment() {
                         id="description"
                         name="description"
                         value={formData.description}
-                        onChange={handleChange}
+                        onChange={handleDescriptionChange}
                         rows={3}
                         placeholder="Describe the purpose of your appointment..."
                     />
                 </div>
                 
-                <div className="form-row">
-                    <div className="form-group">
-                        <label htmlFor="date">Date</label>
-                        <input
-                            type="date"
-                            id="date"
-                            name="date"
-                            value={formData.date}
-                            onChange={handleChange}
-                            required
-                            min={new Date().toISOString().split('T')[0]}
-                        />
-                    </div>
-                    
-                    <div className="form-group">
-                        <label htmlFor="time">Time</label>
-                        <select
-                            id="time"
-                            name="time"
-                            value={formData.time}
-                            onChange={handleChange}
-                            required
-                        >
-                            <option value="">Select a time</option>
-                            {timeSlots.map((time) => (
-                                <option key={time} value={time}>
-                                    {time}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                <div className="form-group">
+                    <label htmlFor="date">Date</label>
+                    <input
+                        type="date"
+                        id="date"
+                        name="date"
+                        value={formData.date}
+                        onChange={handleDateChange}
+                        required
+                        min={today}
+                    />
                 </div>
                 
-                <button type="submit" className="btn-primary" disabled={loading}>
+                {formData.date && (
+                    <div className="form-group">
+                        <label>Available Time Slots</label>
+                        {slotsLoading ? (
+                            <div className="loading-slots">Loading time slots...</div>
+                        ) : timeSlots.length === 0 ? (
+                            <div className="no-slots">No time slots available for this date</div>
+                        ) : (
+                            <div className="time-slots-grid">
+                                {timeSlots.map((slot, index) => (
+                                    <div
+                                        key={index}
+                                        className={`time-slot ${
+                                            slot.available ? 'available' : 'booked'
+                                        } ${formData.selectedSlot?.startTime === slot.startTime ? 'selected' : ''}`}
+                                        onClick={() => handleSlotClick(slot)}
+                                        title={slot.available ? 'Click to select' : `Booked: ${slot.title}`}
+                                    >
+                                        <span className="slot-time">
+                                            {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                                        </span>
+                                        {slot.available ? (
+                                            <span className="slot-status available">Available</span>
+                                        ) : (
+                                            <span className="slot-status booked">
+                                                {slot.title}
+                                                <small>({slot.status})</small>
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                {formData.selectedSlot && (
+                    <div className="selected-slot-info">
+                        <strong>Selected:</strong> {formatTime(formData.selectedSlot.startTime)} - {formatTime(formData.selectedSlot.endTime)}
+                    </div>
+                )}
+                
+                <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    disabled={loading || !formData.selectedSlot}
+                >
                     {loading ? 'Booking...' : 'Book Appointment'}
                 </button>
             </form>
